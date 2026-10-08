@@ -65,8 +65,8 @@ class GripAperture_Weight(klibs.Experiment):
         self.px_cm = int(P.ppi / 2.54)
 
         self.sizes = {
-            SMALL: P.cm_small * self.px_cm,  # type: ignore[known-attribute]
-            LARGE: P.cm_large * self.px_cm,  # type: ignore[known-attribute]
+            LIGHT: P.cm_light * self.px_cm, # type: ignore[known-attribute]
+            HEAVY: P.cm_heavy * self.px_cm, # type: ignore[known-attribute]
             BRIM: P.cm_brim * self.px_cm,  # type: ignore[known-attribute]
             OFFSET: P.cm_offset * self.px_cm,  # type: ignore[known-attribute]
         }
@@ -80,6 +80,9 @@ class GripAperture_Weight(klibs.Experiment):
 
         # middleman between natnet stream and experiment
         self.ot = OptiTracker(marker_count=10, sample_rate=120, window_size=5)
+
+        # plato goggle controller
+        self.goggles = serial.Serial(port = P.arduino_comport, baudrate = P.baudrate)
 
         # 12cm centre-to-centre; aligned hoizonlargey along screen centre
         self.locs = {
@@ -95,70 +98,7 @@ class GripAperture_Weight(klibs.Experiment):
                     thickness=self.sizes[BRIM],
                     fill=WHITE if item == TARGET else GRUE,
                 )
-                for size in (SMALL, LARGE)
-            }
-            for item in (TARGET, DISTRACTOR)
-        }
-
-        self.go_signal = Tone(
-            P.tone_duration, P.tone_shape, P.tone_freq, P.tone_volume  # type: ignore[known-attribute]
-        )
-
-        self.block_sequence = P.task_order  # type: ignore[known-attribute]
-
-        if P.run_practice_blocks:
-            self.insert_practice_block(
-                block_nums=[1], trial_counts=P.trials_per_practice_block  # type: ignore[known-attribute]
-            )
-            self.block_sequence = [P.task_order[0]] + self.block_sequence  # type: ignore[known-attribute]
-
-        # where motion capture data is stored
-        self._ensure_dir_exists(P.opti_data_dir)  # type: ignore[known-attribute]
-        participant_dir = self._get_participant_base_dir()
-        self._ensure_dir_exists(participant_dir)
-        self._ensure_dir_exists(os.path.join(participant_dir, 'testing'))
-
-        if P.run_practice_blocks:
-            self._ensure_dir_exists(os.path.join(participant_dir, 'practice'))
-
-        # sizings
-        self.px_cm = int(P.ppi / 2.54)
-
-        self.sizes = {
-            LIGHT: P.cm_light * self.px_cm,  # type: ignore[known-attribute]
-            HEAVY: P.cm_heavy * self.px_cm,  # type: ignore[known-attribute]
-            BRIM: P.cm_brim * self.px_cm,  # type: ignore[known-attribute]
-            OFFSET: P.cm_offset * self.px_cm,  # type: ignore[known-attribute]
-        }
-
-        # manages stream
-        self.nnc = NatNetClient()
-
-        # what to do with incoming data
-        # TODO: OptiTracker class should handle this directly
-        self.nnc.markers_listener = self.marker_set_listener
-
-        # middleman between natnet stream and experiment
-        self.ot = OptiTracker(marker_count=10, sample_rate=120, window_size=5)
-
-        # plato goggles controller
-        self.goggles = serial.Serial(port=P.arduino_comport, baudrate=P.baudrate)  # type: ignore[known-attribute]
-
-        # 12cm centre-to-centre; aligned hoizonlargey along screen centre
-        self.locs = {
-            LEFT: (P.screen_c[0] - self.sizes[OFFSET], P.screen_c[1]),
-            RIGHT: (P.screen_c[0] + self.sizes[OFFSET], P.screen_c[1]),
-        }
-
-        # visual placeholders
-        self.placeholders = {
-            item: {
-                size: kld.Annulus(
-                    diameter=self.sizes[size] + self.sizes[BRIM],
-                    thickness=self.sizes[BRIM],
-                    fill=WHITE if item == TARGET else GRUE,
-                )
-                for size in (SMALL, LARGE)
+                for size in (LIGHT, HEAVY)
             }
             for item in (TARGET, DISTRACTOR)
         }
@@ -245,14 +185,14 @@ class GripAperture_Weight(klibs.Experiment):
         self.target_boundary = AnnulusBoundary(
             label=TARGET,
             center=self.locs[self.target_loc],  # type: ignore[known-attribute]
-            radius=self.sizes[self.target_size] + self.sizes[BRIM],  # type: ignore[known-attribute]
+            radius=self.sizes[self.target_weight] + self.sizes[BRIM],  # type: ignore[known-attribute]
             thickness=self.sizes[BRIM],
         )
 
         self.distractor_boundary = AnnulusBoundary(
             label=DISTRACTOR,
             center=self.locs[self.distractor_loc],  # type: ignore[known-attribute]
-            radius=self.sizes[self.distractor_size] + self.sizes[BRIM],  # type: ignore[known-attribute]
+            radius=self.sizes[self.distractor_weight] + self.sizes[BRIM],  # type: ignore[known-attribute]
             thickness=self.sizes[BRIM],
         )
 
@@ -274,8 +214,8 @@ class GripAperture_Weight(klibs.Experiment):
             self.block_dir,
             P.trial_number,
             self.target_loc,  # type: ignore[known-attribute]
-            self.target_size,  # type: ignore[known-attribute]
-            self.distractor_size,  # type: ignore[known-attribute]
+            self.target_weight,  # type: ignore[known-attribute]
+            self.distractor_weight,  # type: ignore[known-attribute]
         )
 
         self.nnc.startup()  # start marker tracking
@@ -374,8 +314,8 @@ class GripAperture_Weight(klibs.Experiment):
             'practicing': P.practicing,
             'task_type': self.block_task,
             'target_loc': self.target_loc,  # type: ignore[known-attribute]
-            'target_size': self.target_size,  # type: ignore[known-attribute]
-            'distractor_size': self.distractor_size,  # type: ignore[known-attribute]
+            'target_weight': self.target_weight,  # type: ignore[known-attribute]
+            'distractor_weight': self.distractor_weight,  # type: ignore[known-attribute]
             'go_signal_onset': go_signal_onset_time,
             'distance_threshold': (
                 self.reach_threshold if self.block_task == GBYK else NA
@@ -436,15 +376,15 @@ class GripAperture_Weight(klibs.Experiment):
                 location=[P.screen_c[0], P.screen_c[1] // 3],  # type: ignore[known-attribute]
             )
 
-        distractor_holder = self.placeholders[DISTRACTOR][self.distractor_size]  # type: ignore[known-attribute]
+        distractor_holder = self.placeholders[DISTRACTOR][self.distractor_weight]  # type: ignore[known-attribute]
         distractor_holder.fill = GRUE
 
         if not target:
-            target_holder = self.placeholders[DISTRACTOR][self.target_size]  # type: ignore[known-attribute]
+            target_holder = self.placeholders[DISTRACTOR][self.target_weight]  # type: ignore[known-attribute]
             target_holder.fill = GRUE
 
         else:
-            target_holder = self.placeholders[TARGET][self.target_size]  # type: ignore[known-attribute]
+            target_holder = self.placeholders[TARGET][self.target_weight]  # type: ignore[known-attribute]
             target_holder.fill = WHITE
 
         blit(
@@ -512,12 +452,12 @@ class GripAperture_Weight(klibs.Experiment):
         block_dir,
         trial_num,
         target_loc,
-        target_size,
-        distractor_size,
+        target_weight,
+        distractor_weight,
     ):
         """Construct trial data filename."""
         # TODO: markup file with factor levels instead of shoehorning into filename
-        filename = f'trial_{trial_num}_tSide_{target_loc}_tSize_{target_size}_dSize_{distractor_size}_markers.csv'
+        filename = f'trial_{trial_num}_tSide_{target_loc}_tWeight_{target_weight}_dWeight_{distractor_weight}_markers.csv'
         return os.path.join(block_dir, filename)
 
     def _validate_trial_data_file(self, filepath):
