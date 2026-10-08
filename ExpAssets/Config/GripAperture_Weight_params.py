@@ -70,8 +70,8 @@ append_hostname = False
 #########################################
 task_order = ['GBYK', 'KBYG']
 trials_per_practice_block = 20
-cm_small = 4
-cm_large = 8
+cm_light = 4
+cm_heavy = 4
 cm_brim = 2
 cm_offset = 20
 

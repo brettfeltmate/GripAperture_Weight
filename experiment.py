@@ -37,8 +37,8 @@ PURP = (255, 0, 255, 255)
 # anti-typo protections
 LEFT = 'left'
 RIGHT = 'right'
-SMALL = 'small'
-LARGE = 'large'
+LIGHT = 'light'
+HEAVY = 'heavy'
 TARGET = 'target'
 DISTRACTOR = 'distractor'
 OFFSET = 'offset'
@@ -125,8 +125,8 @@ class GripAperture_Weight(klibs.Experiment):
         self.px_cm = int(P.ppi / 2.54)
 
         self.sizes = {
-            SMALL: P.cm_small * self.px_cm,  # type: ignore[known-attribute]
-            LARGE: P.cm_large * self.px_cm,  # type: ignore[known-attribute]
+            LIGHT: P.cm_light * self.px_cm,  # type: ignore[known-attribute]
+            HEAVY: P.cm_heavy * self.px_cm,  # type: ignore[known-attribute]
             BRIM: P.cm_brim * self.px_cm,  # type: ignore[known-attribute]
             OFFSET: P.cm_offset * self.px_cm,  # type: ignore[known-attribute]
         }
