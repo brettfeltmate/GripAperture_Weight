@@ -66,7 +66,6 @@ class GripAperture_Weight(klibs.Experiment):
 
         self.sizes = {
             SMALL: P.cm_small * self.px_cm,  # type: ignore[known-attribute]
-            MEDIUM: P.cm_medium * self.px_cm,  # type: ignore[known-attribute]
             LARGE: P.cm_large * self.px_cm,  # type: ignore[known-attribute]
             BRIM: P.cm_brim * self.px_cm,  # type: ignore[known-attribute]
             OFFSET: P.cm_offset * self.px_cm,  # type: ignore[known-attribute]
@@ -81,9 +80,6 @@ class GripAperture_Weight(klibs.Experiment):
 
         # middleman between natnet stream and experiment
         self.ot = OptiTracker(marker_count=10, sample_rate=120, window_size=5)
-
-        # plato goggles controller
-        self.goggles = serial.Serial(port=P.arduino_comport, baudrate=P.baudrate)  # type: ignore[known-attribute]
 
         # 12cm centre-to-centre; aligned hoizonlargey along screen centre
         self.locs = {
@@ -130,7 +126,6 @@ class GripAperture_Weight(klibs.Experiment):
 
         self.sizes = {
             SMALL: P.cm_small * self.px_cm,  # type: ignore[known-attribute]
-            MEDIUM: P.cm_medium * self.px_cm,  # type: ignore[known-attribute]
             LARGE: P.cm_large * self.px_cm,  # type: ignore[known-attribute]
             BRIM: P.cm_brim * self.px_cm,  # type: ignore[known-attribute]
             OFFSET: P.cm_offset * self.px_cm,  # type: ignore[known-attribute]
@@ -250,14 +245,14 @@ class GripAperture_Weight(klibs.Experiment):
         self.target_boundary = AnnulusBoundary(
             label=TARGET,
             center=self.locs[self.target_loc],  # type: ignore[known-attribute]
-            radius=self.sizes[TARGET][self.target_size] + self.sizes[BRIM],  # type: ignore[known-attribute]
+            radius=self.sizes[self.target_size] + self.sizes[BRIM],  # type: ignore[known-attribute]
             thickness=self.sizes[BRIM],
         )
 
         self.distractor_boundary = AnnulusBoundary(
             label=DISTRACTOR,
             center=self.locs[self.distractor_loc],  # type: ignore[known-attribute]
-            radius=self.sizes[TARGET][self.distractor_size] + self.sizes[BRIM],  # type: ignore[known-attribute]
+            radius=self.sizes[self.distractor_size] + self.sizes[BRIM],  # type: ignore[known-attribute]
             thickness=self.sizes[BRIM],
         )
 
